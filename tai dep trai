@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tính giờ làm việc</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 2rem auto;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      background: #f9f9f9;
+    }
+    label, input {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    input {
+      padding: 0.5rem;
+    }
+    button {
+      padding: 0.7rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .result {
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+    .error {
+      color: red;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>Tính thời gian làm việc thực tế</h2>
+  <label>Giờ bắt đầu:
+    <input type="time" id="startTime" value="08:00">
+  </label>
+  <label>Giờ kết thúc:
+    <input type="time" id="endTime" value="20:00">
+  </label>
+  <label>Tổng phút nghỉ linh hoạt (nếu có):
+    <input type="number" id="breakMinutes" value="0" min="0">
+  </label>
+  <button onclick="calculateWorkTime()">Tính giờ làm việc</button>
+  <div class="result" id="result"></div>
+  <div class="error" id="error"></div>
+
+  <script>
+    function parseTimeToMinutes(timeStr) {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
+
+    function calculateWorkTime() {
+      const s = document.getElementById("startTime").value;
+      const e = document.getElementById("endTime").value;
+      const extraBreak = parseInt(document.getElementById("breakMinutes").value, 10);
+      const r = document.getElementById("result");
+      const er = document.getElementById("error");
+      r.textContent = "";
+      er.textContent = "";
+
+      if (!s || !e || isNaN(extraBreak) || extraBreak < 0) {
+        er.textContent = "Vui lòng nhập đầy đủ và đúng định dạng.";
+        return;
+      }
+
+      let st = parseTimeToMinutes(s);
+      let en = parseTimeToMinutes(e);
+      if (en < st) en += 24 * 60;
+
+      let totalBreak = extraBreak;
+
+      // Danh sách các khoảng nghỉ cố định
+      const fixedBreaks = [
+        [10 * 60, 10 * 60 + 10],     // 10:00–10:10
+        [12 * 60, 12 * 60 + 45],     // 12:00–12:45
+        [13 * 60, 13 * 60 + 10],     // 13:00–13:10
+        [16 * 60, 16 * 60 + 30]      // 16:00–16:30
+      ];
+
+      fixedBreaks.forEach(([breakStart, breakEnd]) => {
+        if (st < breakEnd && en > breakStart) {
+          const overlapStart = Math.max(st, breakStart);
+          const overlapEnd = Math.min(en, breakEnd);
+          const overlap = overlapEnd - overlapStart;
+          if (overlap > 0) {
+            totalBreak += overlap;
+          }
+        }
+      });
+
+      const worked = en - st - totalBreak;
+      if (worked < 0) {
+        er.textContent = "Thời gian làm việc không hợp lệ sau khi trừ thời gian nghỉ.";
+        return;
+      }
+
+      const h = Math.floor(worked / 60);
+      const m = worked % 60;
+      r.textContent = `Tổng thời gian làm việc thực tế: ${h} giờ ${m} phút (${worked} phút), đã trừ nghỉ cố định và linh hoạt nếu có.`;
+    }
+  </script>
+</body>
+</html>
